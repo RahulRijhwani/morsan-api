@@ -1,18 +1,18 @@
 <?php
-// if (isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST'] === 'localhost' || $_SERVER['HTTP_HOST'] === '127.0.0.1')) {
+if (isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST'] === 'localhost' || $_SERVER['HTTP_HOST'] === '127.0.0.1')) {
     // Local database settings
     $db_host = "localhost";
     $db_user = "root";
     $db_pass = "";
     $db_name = "moron";
     
-// } else {
-//     // Server (production) database settings
-//     $db_host = "localhost";
-//     $db_user = "";
-//     $db_pass = "";
-//     $db_name = "";
-// }
+} else {
+    // Server (production) database settings
+    $db_host = "localhost";
+    $db_user = "u696140658_morsan";
+    $db_pass = "morsan@DB12";
+    $db_name = "u696140658_morsan";
+}
 
 $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
 if ($conn->connect_error) {
