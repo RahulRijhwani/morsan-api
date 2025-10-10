@@ -16,7 +16,7 @@ $id = $_GET['id'] ?? $_POST['id'] ?? null;
 $data = [];
 
 if ($id) {
-    $stmt = $conn->prepare("SELECT * FROM categories WHERE id=?");
+    $stmt = $conn->prepare("SELECT * FROM testimonials WHERE id=?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $res = $stmt->get_result();
@@ -31,11 +31,11 @@ if ($id) {
         http_response_code(404);
         echo json_encode([
             "success" => false,
-            "message" => "Category not found"
+            "message" => "Testimonial not found"
         ]);
     }
 } else {
-    $sql = "SELECT * FROM categories";
+    $sql = "SELECT * FROM testimonials";
     $query = $conn->query($sql);
 
     while ($row = $query->fetch_assoc()) {
