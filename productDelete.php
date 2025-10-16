@@ -24,8 +24,8 @@ if (!$id) {
     exit;
 }
 
-// Get existing images
-$stmt = $conn->prepare("SELECT images FROM products WHERE id=?");
+// Get existing images and PDF
+$stmt = $conn->prepare("SELECT images, pdf FROM products WHERE id=?");
 $stmt->bind_param("i", $id);
 $stmt->execute();
 $res = $stmt->get_result();
@@ -37,12 +37,18 @@ if ($res->num_rows === 0) {
 
 $row = $res->fetch_assoc();
 $images = json_decode($row['images'], true) ?? [];
+$pdf = $row['pdf'] ?? null;
 
 // Delete images
 foreach ($images as $img) {
-    if (file_exists($img)) { // $img already contains full path like 'uploads/xxx.jpg'
+    if (file_exists($img)) {
         @unlink($img);
     }
+}
+
+// Delete PDF
+if ($pdf && $pdf !== '0' && file_exists($pdf)) {
+    @unlink($pdf);
 }
 
 // Delete product
@@ -51,7 +57,7 @@ $stmt->bind_param("i", $id);
 
 if ($stmt->execute()) {
     if ($stmt->affected_rows > 0) {
-        echo json_encode(["success" => true, "message" => "Product and related images deleted successfully"]);
+        echo json_encode(["success" => true, "message" => "Product, related images, and PDF deleted successfully"]);
     } else {
         echo json_encode(["success" => false, "message" => "No product found with this ID"]);
     }
