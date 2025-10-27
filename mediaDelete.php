@@ -4,7 +4,6 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Content-Type: application/json");
 
-// Preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
@@ -24,52 +23,31 @@ if (!$id) {
     exit;
 }
 
-// Get existing images and PDF
-$stmt = $conn->prepare("SELECT images, pdf FROM products WHERE id=?");
+$stmt = $conn->prepare("SELECT image FROM media WHERE id=?");
 $stmt->bind_param("i", $id);
 $stmt->execute();
 $res = $stmt->get_result();
 
 if ($res->num_rows === 0) {
-    echo json_encode(["success" => false, "message" => "Product not found"]);
+    echo json_encode(["success" => false, "message" => "Media not found"]);
     exit;
 }
 
 $row = $res->fetch_assoc();
-$images = json_decode($row['images'], true) ?? [];
-$pdf = $row['pdf'] ?? null;
-$accessories = json_decode($row['accessories'], true) ?? [];
+$image = $row['image'] ?? null;
 
-// Delete images
-foreach ($images as $img) {
-    if (file_exists($img)) {
-        @unlink($img);
-    }
+if (!empty($image) && file_exists($image)) {
+    @unlink($image);
 }
 
-// Delete all accessory images
-if (!empty($accessories)) {
-    foreach ($accessories as $acc) {
-        if (!empty($acc['image']) && file_exists($acc['image'])) {
-            @unlink($acc['image']);
-        }
-    }
-}
-
-// Delete PDF
-if ($pdf && $pdf !== '0' && file_exists($pdf)) {
-    @unlink($pdf);
-}
-
-// Delete product
-$stmt = $conn->prepare("DELETE FROM products WHERE id=?");
+$stmt = $conn->prepare("DELETE FROM media WHERE id=?");
 $stmt->bind_param("i", $id);
 
 if ($stmt->execute()) {
     if ($stmt->affected_rows > 0) {
-        echo json_encode(["success" => true, "message" => "Product, related images, and PDF deleted successfully"]);
+        echo json_encode(["success" => true, "message" => "Media and related image deleted successfully"]);
     } else {
-        echo json_encode(["success" => false, "message" => "No product found with this ID"]);
+        echo json_encode(["success" => false, "message" => "No media found with this ID"]);
     }
 } else {
     http_response_code(500);

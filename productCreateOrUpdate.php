@@ -48,11 +48,36 @@ $category_id    = !empty($_POST['category_id']) ? (int)$_POST['category_id'] : n
 $subcategory_id = !empty($_POST['subcategory_id']) ? (int)$_POST['subcategory_id'] : null;
 $url            = $_POST['url'] ?? '';
 $technicalInput = $_POST['technical_specifications'] ?? [];
+$description    = $_POST['description'] ?? '';
+$accessories    = $_POST['accessories'] ?? '[]'; // Expecting JSON or array
 
 // Convert arrays to JSON strings
 $advantagesJson = is_array($advantages) ? json_encode($advantages, JSON_UNESCAPED_UNICODE) : $advantages;
 $featuresJson   = is_array($features) ? json_encode($features, JSON_UNESCAPED_UNICODE) : $features;
 $technicalJson  = is_array($technicalInput) ? json_encode($technicalInput, JSON_UNESCAPED_UNICODE) : $technicalInput;
+
+// Convert accessories (if passed as array)
+if (is_array($accessories)) {
+    $accessoriesArr = $accessories;
+} else {
+    $accessoriesArr = json_decode($accessories, true) ?? [];
+}
+
+// Handle uploaded accessory images
+if (!empty($_FILES['accessory_images']['name'][0])) {
+    foreach ($_FILES['accessory_images']['name'] as $key => $accFile) {
+        $tmpName = $_FILES['accessory_images']['tmp_name'][$key];
+        $ext = pathinfo($accFile, PATHINFO_EXTENSION);
+        $newName = uniqid("acc_") . "." . $ext;
+        if (move_uploaded_file($tmpName, $uploadDir . $newName)) {
+            // Attach new image to corresponding accessory title
+            $title = $_POST['accessory_titles'][$key] ?? '';
+            $accessoriesArr[] = ["image" => $uploadDir . $newName, "title" => $title];
+        }
+    }
+}
+
+$accessoriesJson = json_encode($accessoriesArr, JSON_UNESCAPED_UNICODE);
 
 // Handle multiple images
 $uploadedImages = [];
@@ -68,12 +93,11 @@ if (!empty($_FILES['images']['name'][0])) {
 }
 
 // Handle single PDF
-$pdf = '0'; // default 0 if no PDF uploaded
+$pdf = '0';
 if (!empty($_FILES['pdf']['name'])) {
     $pdfTmp = $_FILES['pdf']['tmp_name'];
     $pdfExt = pathinfo($_FILES['pdf']['name'], PATHINFO_EXTENSION);
     $pdfName = uniqid("pdf_") . "." . $pdfExt;
-
     if (move_uploaded_file($pdfTmp, $uploadDir . $pdfName)) {
         $pdf = $uploadDir . $pdfName;
     } 
@@ -82,7 +106,7 @@ if (!empty($_FILES['pdf']['name'])) {
 // Handle INSERT or UPDATE
 if ($id) {
     // UPDATE
-    $stmt = $conn->prepare("SELECT images, pdf FROM products WHERE id=?");
+    $stmt = $conn->prepare("SELECT images, pdf, accessories FROM products WHERE id=?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $res = $stmt->get_result();
@@ -91,10 +115,12 @@ if ($id) {
         exit;
     }
     $row = $res->fetch_assoc();
-    $oldImages = json_decode($row['images'], true) ?? [];
-    $oldPdf    = $row['pdf'] ?? '0';
 
-    // Images update logic
+    $oldImages = json_decode($row['images'], true) ?? [];
+    $oldPdf = $row['pdf'] ?? '0';
+    $oldAccessories = json_decode($row['accessories'], true) ?? [];
+
+    // Images logic
     $keptOldImages = isset($_POST['existing_images']) ? json_decode($_POST['existing_images'], true) : null;
     if ($keptOldImages !== null) {
         $removed = array_diff($oldImages, $keptOldImages);
@@ -107,26 +133,30 @@ if ($id) {
         $finalImages = $oldImages;
     }
 
-    // PDF update logic
-    if ($pdf !== '0') { // new PDF uploaded
+    // PDF logic
+    if ($pdf !== '0') {
         if ($oldPdf && file_exists($oldPdf)) { @unlink($oldPdf); }
         $finalPdf = $pdf;
     } else {
         $finalPdf = $oldPdf ?: '0';
     }
 
+    // Accessories logic — keep old + add new
+    $finalAccessories = array_merge($oldAccessories, $accessoriesArr);
+    $accessoriesJson = json_encode($finalAccessories, JSON_UNESCAPED_UNICODE);
+
     // Prepare update statement
     $imagesJson = json_encode($finalImages);
     $stmt = $conn->prepare("UPDATE products SET 
-        name=?, images=?, url=?, advantages=?, technical_specifications=?, 
+        name=?, images=?, url=?, advantages=?, description=?, technical_specifications=?, 
         special_features=?, category_id=?, subcategory_id=?, 
-        updated_by=?, status=?, pdf=?, updated_at=NOW() 
+        updated_by=?, status=?, pdf=?, accessories=?, updated_at=NOW() 
         WHERE id=?");
     $stmt->bind_param(
-        "ssssssiisssi",
-        $name, $imagesJson, $url, $advantagesJson, $technicalJson, $featuresJson,
+        "sssssssiissssi",
+        $name, $imagesJson, $url, $advantagesJson, $description, $technicalJson, $featuresJson,
         $category_id, $subcategory_id,
-        $loggedUser, $status, $finalPdf, $id
+        $loggedUser, $status, $finalPdf, $accessoriesJson, $id
     );
 
     $message = "Product updated successfully";
@@ -135,14 +165,14 @@ if ($id) {
     // INSERT
     $imagesJson = json_encode($uploadedImages);
     $stmt = $conn->prepare("INSERT INTO products 
-        (name, images, url, advantages, technical_specifications, special_features, 
-         category_id, subcategory_id, created_by, updated_by, status, pdf, created_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+        (name, images, url, advantages, description, technical_specifications, special_features, 
+         category_id, subcategory_id, created_by, updated_by, status, pdf, accessories, created_at) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
     $stmt->bind_param(
-        "ssssssiissis",
-        $name, $imagesJson, $url, $advantagesJson, $technicalJson, $featuresJson,
+        "sssssssiississ",
+        $name, $imagesJson, $url, $advantagesJson, $description, $technicalJson, $featuresJson,
         $category_id, $subcategory_id,
-        $loggedUser, $loggedUser, $status, $pdf
+        $loggedUser, $loggedUser, $status, $pdf, $accessoriesJson
     );
 
     $message = "Product created successfully";
@@ -156,10 +186,12 @@ if ($stmt->execute()) {
         "data" => [
             "id" => $id ?: $stmt->insert_id,
             "name" => $name,
+            "description" => $description,
             "advantages" => json_decode($advantagesJson, true),
             "technical_specifications" => json_decode($technicalJson, true),
             "special_features" => json_decode($featuresJson, true),
             "images" => $finalImages ?? $uploadedImages,
+            "accessories" => json_decode($accessoriesJson, true),
             "status" => $status,
             "category_id" => $category_id,
             "subcategory_id" => $subcategory_id,
