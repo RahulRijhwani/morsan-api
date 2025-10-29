@@ -27,24 +27,34 @@ if ($id) {
     $existing = $res->fetch_assoc();
 } else {
     $existing = [
-        'name' => null,
+        'first_name' => null,
+        'last_name' => null,
         'phone' => null,
         'email' => null,
-        'message' => null,
-        'company' => null,
+        'country' => null,
         'location' => null,
+        'city' => null,
+        'dist' => null,
+        'state' => null,
+        'pin_code' => null,
+        'firm_name' => null,
         'is_read' => 0
     ];
 }
 
 // Get form values or fallback to existing values
-$name         = $_POST['name']    ?? $existing['name'] ?? '';
+$first_name         = $_POST['first_name']    ?? $existing['first_name'] ?? '';
+$last_name         = $_POST['last_name']    ?? $existing['last_name'] ?? '';
 $phone        = $_POST['phone']   ?? $existing['phone'] ?? '';
 $email        = $_POST['email']   ?? $existing['email'] ?? '';
 $type         = 'Dealer';
-$form_message = $_POST['message'] ?? $existing['message'] ?? '';
-$company      = $_POST['company'] ?? $existing['company'] ?? '';
+$firm_name = $_POST['firm_name'] ?? $existing['firm_name'] ?? '';
+$country      = $_POST['country'] ?? $existing['country'] ?? '';
 $location     = $_POST['location'] ?? $existing['location'] ?? '';
+$city     = $_POST['city'] ?? $existing['city'] ?? '';
+$dist     = $_POST['dist'] ?? $existing['dist'] ?? '';
+$state     = $_POST['state'] ?? $existing['state'] ?? '';
+$pin_code     = $_POST['pin_code'] ?? $existing['pin_code'] ?? '';
 
 // Normalize is_read to 0 or 1
 if (isset($_POST['is_read'])) {
@@ -61,9 +71,9 @@ if ($id) {
     $message = "Contact updated successfully";
 } else {
     // Insert new record
-    $sql = "INSERT INTO contacts (name, phone, email, type, message, company, location, is_read, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+    $sql = "INSERT INTO contacts (first_name, last_name, firm_name, country, city, dist, state, pin_code, phone, email, type, location, is_read, created_at) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sssssssi", $name, $phone, $email, $type, $form_message, $company, $location, $is_read);
+    $stmt->bind_param("ssssssssssssi", $first_name, $last_name, $firm_name, $country, $city, $dist, $state, $pin_code, $phone, $email, $type, $location, $is_read);
     $message = "Contact added successfully";
 }
 
@@ -74,13 +84,18 @@ if ($stmt->execute()) {
         "message" => $message,
         "data" => [
             "id"      => $id ?: $stmt->insert_id,
-            "name"    => $name,
+            "first_name"    => $first_name,
+            "last_name"    => $last_name,
+            "firm_name"    => $firm_name,
+            "country"    => $country,
+            "city"    => $city,
+            "dist"    => $dist,
+            "state"    => $state,
+            "pin_code"    => $pin_code,
             "phone"   => $phone,
             "email"   => $email,
-            "type"    => $type,
-            "message" => $form_message,
-            "company" => $company,
             "location" => $location,
+            "type"    => $type,
             "is_read" => $is_read
         ]
     ]);

@@ -32,9 +32,8 @@ if ($id) {
         'email' => null,
         'type' => null,
         'message' => null,
-        'company' => null,
-        'location' => null,
-        'product_type' => null,
+        'inquiry_for' => null,
+        'country' => null,
         'is_read' => 0
     ];
 }
@@ -45,9 +44,8 @@ $phone        = $_POST['phone']   ?? $existing['phone'] ?? '';
 $email        = $_POST['email']   ?? $existing['email'] ?? '';
 $type         = $_POST['type']    ?? $existing['type'] ?? '';
 $form_message = $_POST['message'] ?? $existing['message'] ?? '';
-$company      = $_POST['company'] ?? $existing['company'] ?? '';
-$location     = $_POST['location'] ?? $existing['location'] ?? '';
-$product_type = $_POST['product_type'] ?? $existing['product_type'] ?? '';
+$inquiry_for = $_POST['inquiry_for'] ?? $existing['inquiry_for'] ?? '';
+$country     = $_POST['country'] ?? $existing['country'] ?? '';
 
 // Normalize is_read to 0 or 1
 if (isset($_POST['is_read'])) {
@@ -64,9 +62,9 @@ if ($id) {
     $message = "Contact updated successfully";
 } else {
     // Insert new record
-    $sql = "INSERT INTO contacts (name, phone, email, type, message, company, location, product_type, is_read, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+    $sql = "INSERT INTO contacts (name, phone, email, type, message, inquiry_for, country, is_read, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssssssssi", $name, $phone, $email, $type, $form_message, $company, $location, $product_type, $is_read);
+    $stmt->bind_param("sssssssi", $name, $phone, $email, $type, $form_message, $inquiry_for, $country, $is_read);
     $message = "Contact added successfully";
 }
 
@@ -82,9 +80,8 @@ if ($stmt->execute()) {
             "email"   => $email,
             "type"    => $type,
             "message" => $form_message,
-            "company" => $company,
-            "location" => $location,
-            "product_type" => $product_type,
+            "inquiry_for" => $inquiry_for,
+            "country" => $country,
             "is_read" => $is_read
         ]
     ]);
