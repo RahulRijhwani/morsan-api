@@ -18,7 +18,8 @@ if (!is_dir($uploadDir)) {
 }
 
 // Get logged-in user from JWT
-function getLoggedInUserFromToken() {
+function getLoggedInUserFromToken()
+{
     $headers = getallheaders();
     if (!isset($headers['Authorization'])) return null;
 
@@ -26,7 +27,7 @@ function getLoggedInUserFromToken() {
     if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) return null;
 
     $token = $matches[1];
-    $payload = verifyJWT($token, $GLOBALS['jwtSecret']); 
+    $payload = verifyJWT($token, $GLOBALS['jwtSecret']);
     return $payload ?: null;
 }
 
@@ -101,7 +102,7 @@ if (!empty($_FILES['pdf']['name'])) {
     $pdfName = uniqid("pdf_") . "." . $pdfExt;
     if (move_uploaded_file($pdfTmp, $uploadDir . $pdfName)) {
         $pdf = $uploadDir . $pdfName;
-    } 
+    }
 }
 
 // Handle INSERT or UPDATE
@@ -125,10 +126,14 @@ if ($id) {
     $keptOldImages = isset($_POST['existing_images']) ? json_decode($_POST['existing_images'], true) : null;
     if ($keptOldImages !== null) {
         $removed = array_diff($oldImages, $keptOldImages);
-        foreach ($removed as $oldImg) { if (file_exists($oldImg)) @unlink($oldImg); }
+        foreach ($removed as $oldImg) {
+            if (file_exists($oldImg)) @unlink($oldImg);
+        }
         $finalImages = array_values(array_merge($keptOldImages, $uploadedImages));
     } else if (!empty($uploadedImages)) {
-        foreach ($oldImages as $oldImg) { if (file_exists($oldImg)) @unlink($oldImg); }
+        foreach ($oldImages as $oldImg) {
+            if (file_exists($oldImg)) @unlink($oldImg);
+        }
         $finalImages = $uploadedImages;
     } else {
         $finalImages = $oldImages;
@@ -136,15 +141,50 @@ if ($id) {
 
     // PDF logic
     if ($pdf !== '0') {
-        if ($oldPdf && file_exists($oldPdf)) { @unlink($oldPdf); }
+        if ($oldPdf && file_exists($oldPdf)) {
+            @unlink($oldPdf);
+        }
         $finalPdf = $pdf;
     } else {
         $finalPdf = $oldPdf ?: '0';
     }
 
-    // Accessories logic — keep old + add new
-    $finalAccessories = array_merge($oldAccessories, $accessoriesArr);
+    // // Accessories logic — keep old + add new
+    // $finalAccessories = array_merge($oldAccessories, $accessoriesArr);
+    // $accessoriesJson = json_encode($finalAccessories, JSON_UNESCAPED_UNICODE);
+
+    // ACCESSORIES DELETE/KEEP/ADD LOGIC
+    $keptOldAccessories = isset($_POST['existing_accessories'])
+        ? json_decode($_POST['existing_accessories'], true)
+        : null;
+
+    if ($keptOldAccessories !== null) {
+
+        // Find removed accessories
+        $removedAccessories = array_udiff(
+            $oldAccessories,
+            $keptOldAccessories,
+            function ($a, $b) {
+                return strcmp($a['image'], $b['image']);
+            }
+        );
+
+        // Delete removed accessory images
+        foreach ($removedAccessories as $acc) {
+            if (!empty($acc['image']) && file_exists($acc['image'])) {
+                @unlink($acc['image']);
+            }
+        }
+
+        // Final = kept old + new uploaded
+        $finalAccessories = array_merge($keptOldAccessories, $accessoriesArr);
+    } else {
+        // No old accessory list provided → keep all old + add new
+        $finalAccessories = array_merge($oldAccessories, $accessoriesArr);
+    }
+
     $accessoriesJson = json_encode($finalAccessories, JSON_UNESCAPED_UNICODE);
+
 
     // Prepare update statement
     $imagesJson = json_encode($finalImages);
@@ -155,13 +195,24 @@ if ($id) {
         WHERE id=?");
     $stmt->bind_param(
         "ssssssssiissssi",
-        $name, $imagesJson, $url, $advantagesJson, $description, $sub_description, $technicalJson, $featuresJson,
-        $category_id, $subcategory_id,
-        $loggedUser, $status, $finalPdf, $accessoriesJson, $id
+        $name,
+        $imagesJson,
+        $url,
+        $advantagesJson,
+        $description,
+        $sub_description,
+        $technicalJson,
+        $featuresJson,
+        $category_id,
+        $subcategory_id,
+        $loggedUser,
+        $status,
+        $finalPdf,
+        $accessoriesJson,
+        $id
     );
 
     $message = "Product updated successfully";
-
 } else {
     // INSERT
     $imagesJson = json_encode($uploadedImages);
@@ -171,9 +222,21 @@ if ($id) {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
     $stmt->bind_param(
         "ssssssssiississ",
-        $name, $imagesJson, $url, $advantagesJson, $description, $sub_description, $technicalJson, $featuresJson,
-        $category_id, $subcategory_id,
-        $loggedUser, $loggedUser, $status, $pdf, $accessoriesJson
+        $name,
+        $imagesJson,
+        $url,
+        $advantagesJson,
+        $description,
+        $sub_description,
+        $technicalJson,
+        $featuresJson,
+        $category_id,
+        $subcategory_id,
+        $loggedUser,
+        $loggedUser,
+        $status,
+        $pdf,
+        $accessoriesJson
     );
 
     $message = "Product created successfully";
