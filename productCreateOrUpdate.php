@@ -49,6 +49,7 @@ $subcategory_id = !empty($_POST['subcategory_id']) ? (int)$_POST['subcategory_id
 $url            = $_POST['url'] ?? '';
 $technicalInput = $_POST['technical_specifications'] ?? [];
 $description    = $_POST['description'] ?? '';
+$sub_description    = $_POST['sub_description'] ?? '';
 $accessories    = $_POST['accessories'] ?? '[]'; // Expecting JSON or array
 
 // Convert arrays to JSON strings
@@ -148,13 +149,13 @@ if ($id) {
     // Prepare update statement
     $imagesJson = json_encode($finalImages);
     $stmt = $conn->prepare("UPDATE products SET 
-        name=?, images=?, url=?, advantages=?, description=?, technical_specifications=?, 
+        name=?, images=?, url=?, advantages=?, description=?, sub_description=?, technical_specifications=?, 
         special_features=?, category_id=?, subcategory_id=?, 
         updated_by=?, status=?, pdf=?, accessories=?, updated_at=NOW() 
         WHERE id=?");
     $stmt->bind_param(
-        "sssssssiissssi",
-        $name, $imagesJson, $url, $advantagesJson, $description, $technicalJson, $featuresJson,
+        "ssssssssiissssi",
+        $name, $imagesJson, $url, $advantagesJson, $description, $sub_description, $technicalJson, $featuresJson,
         $category_id, $subcategory_id,
         $loggedUser, $status, $finalPdf, $accessoriesJson, $id
     );
@@ -165,12 +166,12 @@ if ($id) {
     // INSERT
     $imagesJson = json_encode($uploadedImages);
     $stmt = $conn->prepare("INSERT INTO products 
-        (name, images, url, advantages, description, technical_specifications, special_features, 
+        (name, images, url, advantages, description, sub_description, technical_specifications, special_features, 
          category_id, subcategory_id, created_by, updated_by, status, pdf, accessories, created_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
     $stmt->bind_param(
-        "sssssssiississ",
-        $name, $imagesJson, $url, $advantagesJson, $description, $technicalJson, $featuresJson,
+        "ssssssssiississ",
+        $name, $imagesJson, $url, $advantagesJson, $description, $sub_description, $technicalJson, $featuresJson,
         $category_id, $subcategory_id,
         $loggedUser, $loggedUser, $status, $pdf, $accessoriesJson
     );
@@ -187,6 +188,7 @@ if ($stmt->execute()) {
             "id" => $id ?: $stmt->insert_id,
             "name" => $name,
             "description" => $description,
+            "sub_description" => $sub_description,
             "advantages" => json_decode($advantagesJson, true),
             "technical_specifications" => json_decode($technicalJson, true),
             "special_features" => json_decode($featuresJson, true),
