@@ -41,6 +41,33 @@ $loggedUser = $user['email'];
 $id     = $_POST['id'] ?? null;
 $name   = $_POST['name'] ?? '';
 $status = $_POST['status'] ?? 1;
+$sort_index = $_POST['sort_index'] ?? 0;
+
+// SHIFT INDEXES (avoid duplicate index)
+if ($sort_index > 0) {
+
+    if ($id) {
+        // Updating existing category → exclude this category from shifting
+        $shiftStmt = $conn->prepare("
+            UPDATE categories 
+            SET sort_index = sort_index + 1 
+            WHERE sort_index >= ? AND id != ?
+        ");
+        $shiftStmt->bind_param("ii", $sort_index, $id);
+
+    } else {
+        // Insert new category
+        $shiftStmt = $conn->prepare("
+            UPDATE categories 
+            SET sort_index = sort_index + 1 
+            WHERE sort_index >= ?
+        ");
+        $shiftStmt->bind_param("i", $sort_index);
+    }
+
+    $shiftStmt->execute();
+}
+
 
 $imagePath = null;
 
@@ -83,10 +110,10 @@ if ($id) {
     }
 
     $sql = "UPDATE categories SET 
-        name=?, image=?, updated_by=?, status=?, updated_at=NOW() 
-        WHERE id=?";
+name=?, image=?, updated_by=?, status=?, sort_index=?, updated_at=NOW()
+WHERE id=?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sssii", $name, $finalImage, $loggedUser, $status, $id);
+$stmt->bind_param("sssiii", $name, $finalImage, $loggedUser, $status, $sort_index, $id);
 
     $message = "Category updated successfully";
 
@@ -94,10 +121,10 @@ if ($id) {
     $finalImage = $imagePath ?? null;
 
     $sql = "INSERT INTO categories 
-        (name, image, created_by, updated_by, status, created_at) 
-        VALUES (?, ?, ?, ?, ?, NOW())";
+(name, image, created_by, updated_by, status, sort_index, created_at)
+VALUES (?, ?, ?, ?, ?, ?, NOW())";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssssi", $name, $finalImage, $loggedUser, $loggedUser, $status);
+$stmt->bind_param("ssssii", $name, $finalImage, $loggedUser, $loggedUser, $status, $sort_index);
 
     $message = "Category created successfully";
 }
@@ -110,6 +137,7 @@ if ($stmt->execute()) {
             "id" => $id ?: $stmt->insert_id,
             "name" => $name,
             "image" => $finalImage,
+            "sort_index" => $sort_index,
             "status" => $status,
             "created_by" => $loggedUser
         ]

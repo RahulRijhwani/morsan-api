@@ -42,6 +42,33 @@ $id           = $_POST['id'] ?? null;
 $name         = $_POST['name'] ?? '';
 $category_id  = $_POST['category_id'] ?? null;
 $status       = $_POST['status'] ?? 1;
+$sort_index = $_POST['sort_index'] ?? 0;
+
+// SHIFT sort indexes inside same parent category
+if ($sort_index > 0 && $category_id) {
+
+    if ($id) {
+        // Update existing → avoid shifting its own index
+        $shiftStmt = $conn->prepare("
+            UPDATE sub_categories 
+            SET sort_index = sort_index + 1 
+            WHERE category_id = ? AND sort_index >= ? AND id != ?
+        ");
+        $shiftStmt->bind_param("iii", $category_id, $sort_index, $id);
+
+    } else {
+        // Creating new subcategory
+        $shiftStmt = $conn->prepare("
+            UPDATE sub_categories 
+            SET sort_index = sort_index + 1 
+            WHERE category_id = ? AND sort_index >= ?
+        ");
+        $shiftStmt->bind_param("ii", $category_id, $sort_index);
+    }
+
+    $shiftStmt->execute();
+}
+
 
 $imagePath = null;
 
@@ -83,10 +110,10 @@ if ($id) {
     }
 
     $sql = "UPDATE sub_categories SET 
-        name=?, category_id=?, image=?, updated_by=?, status=?, updated_at=NOW() 
-        WHERE id=?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sissii", $name, $category_id, $finalImage, $loggedUser, $status, $id);
+    name=?, category_id=?, image=?, updated_by=?, status=?, sort_index=?, updated_at=NOW() 
+    WHERE id=?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("sissiii", $name, $category_id, $finalImage, $loggedUser, $status, $sort_index, $id);
 
     $message = "Category updated successfully";
 
@@ -94,10 +121,11 @@ if ($id) {
     $finalImage = $imagePath ?? null;
 
     $sql = "INSERT INTO sub_categories 
-        (name, category_id, image, created_by, updated_by, status, created_at) 
-        VALUES (?, ?, ?, ?, ?, ?, NOW())";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sisssi", $name, $category_id, $finalImage, $loggedUser, $loggedUser, $status);
+    (name, category_id, image, created_by, updated_by, status, sort_index, created_at) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("sisssii", $name, $category_id, $finalImage, $loggedUser, $loggedUser, $status, $sort_index);
+
 
     $message = "Category created successfully";
 }
@@ -111,6 +139,7 @@ if ($stmt->execute()) {
             "name" => $name,
             "category_id" => $category_id,
             "image" => $finalImage,
+            "sort_index" => $sort_index,
             "status" => $status,
             "created_by" => $loggedUser
         ]

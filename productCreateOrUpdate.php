@@ -53,6 +53,55 @@ $description    = $_POST['description'] ?? '';
 $sub_description    = $_POST['sub_description'] ?? '';
 $accessories    = $_POST['accessories'] ?? '[]'; // Expecting JSON or array
 
+$sort_index = isset($_POST['sort_index']) ? (int)$_POST['sort_index'] : 0;
+
+// SHIFT PRODUCT INDEX (avoid duplicate sort_index)
+if ($sort_index > 0) {
+
+    if ($subcategory_id) {
+        // Product belongs to a subcategory
+        if ($id) {
+            // update
+            $shiftStmt = $conn->prepare("
+                UPDATE products 
+                SET sort_index = sort_index + 1
+                WHERE subcategory_id = ? AND sort_index >= ? AND id != ?
+            ");
+            $shiftStmt->bind_param("iii", $subcategory_id, $sort_index, $id);
+
+        } else {
+            // insert
+            $shiftStmt = $conn->prepare("
+                UPDATE products 
+                SET sort_index = sort_index + 1
+                WHERE subcategory_id = ? AND sort_index >= ?
+            ");
+            $shiftStmt->bind_param("ii", $subcategory_id, $sort_index);
+        }
+
+    } else {
+        // Product belongs directly to a category
+        if ($id) {
+            $shiftStmt = $conn->prepare("
+                UPDATE products 
+                SET sort_index = sort_index + 1
+                WHERE category_id = ? AND subcategory_id IS NULL AND sort_index >= ? AND id != ?
+            ");
+            $shiftStmt->bind_param("iii", $category_id, $sort_index, $id);
+
+        } else {
+            $shiftStmt = $conn->prepare("
+                UPDATE products 
+                SET sort_index = sort_index + 1
+                WHERE category_id = ? AND subcategory_id IS NULL AND sort_index >= ?
+            ");
+            $shiftStmt->bind_param("ii", $category_id, $sort_index);
+        }
+    }
+
+    $shiftStmt->execute();
+}
+
 // Convert arrays to JSON strings
 $advantagesJson = is_array($advantages) ? json_encode($advantages, JSON_UNESCAPED_UNICODE) : $advantages;
 $featuresJson   = is_array($features) ? json_encode($features, JSON_UNESCAPED_UNICODE) : $features;
@@ -189,55 +238,38 @@ if ($id) {
     // Prepare update statement
     $imagesJson = json_encode($finalImages);
     $stmt = $conn->prepare("UPDATE products SET 
-        name=?, images=?, url=?, advantages=?, description=?, sub_description=?, technical_specifications=?, 
-        special_features=?, category_id=?, subcategory_id=?, 
-        updated_by=?, status=?, pdf=?, accessories=?, updated_at=NOW() 
-        WHERE id=?");
+  name=?, images=?, url=?, advantages=?, description=?, sub_description=?, 
+  technical_specifications=?, special_features=?, 
+  category_id=?, subcategory_id=?, updated_by=?, status=?, pdf=?, accessories=?, 
+  sort_index=?, updated_at=NOW() 
+WHERE id=?
+");
     $stmt->bind_param(
-        "ssssssssiissssi",
-        $name,
-        $imagesJson,
-        $url,
-        $advantagesJson,
-        $description,
-        $sub_description,
-        $technicalJson,
-        $featuresJson,
-        $category_id,
-        $subcategory_id,
-        $loggedUser,
-        $status,
-        $finalPdf,
-        $accessoriesJson,
-        $id
-    );
+    "ssssssssiissssii",
+    $name, $imagesJson, $url, $advantagesJson, $description, $sub_description,
+    $technicalJson, $featuresJson, $category_id, $subcategory_id, $loggedUser,
+    $status, $finalPdf, $accessoriesJson, $sort_index, $id
+);
+
 
     $message = "Product updated successfully";
 } else {
     // INSERT
     $imagesJson = json_encode($uploadedImages);
-    $stmt = $conn->prepare("INSERT INTO products 
-        (name, images, url, advantages, description, sub_description, technical_specifications, special_features, 
-         category_id, subcategory_id, created_by, updated_by, status, pdf, accessories, created_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+    $stmt = $conn->prepare("INSERT INTO products (
+  name, images, url, advantages, description, sub_description,
+  technical_specifications, special_features, category_id, subcategory_id,
+  created_by, updated_by, status, pdf, accessories, sort_index, created_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+");
     $stmt->bind_param(
-        "ssssssssiississ",
-        $name,
-        $imagesJson,
-        $url,
-        $advantagesJson,
-        $description,
-        $sub_description,
-        $technicalJson,
-        $featuresJson,
-        $category_id,
-        $subcategory_id,
-        $loggedUser,
-        $loggedUser,
-        $status,
-        $pdf,
-        $accessoriesJson
-    );
+    "ssssssssiississi",
+    $name, $imagesJson, $url, $advantagesJson, $description, $sub_description,
+    $technicalJson, $featuresJson, $category_id, $subcategory_id,
+    $loggedUser, $loggedUser, $status, $pdf, $accessoriesJson, $sort_index
+);
+
 
     $message = "Product created successfully";
 }
