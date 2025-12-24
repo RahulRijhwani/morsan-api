@@ -6,7 +6,7 @@ if (isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST'] === 'localhost' || $_
     $db_pass = "";
     $db_name = "moron";
     
-} else if (isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST'] === 'https://stage.morsan.co.in' || $_SERVER['HTTP_HOST'] === 'stage.morsan.co.in')) {
+} else if (isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST'] === 'https://stageapi.morsan.co.in/' || $_SERVER['HTTP_HOST'] === 'stageapi.morsan.co.in')) {
     // Staging database settings
     $db_host = "localhost";
     $db_user = "u696140658_morsan_stage";
