@@ -7,19 +7,19 @@
 //     $db_name = "moron";
     
 // } else 
-if (isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST'] === 'https://stageapi.morsan.co.in/' || $_SERVER['HTTP_HOST'] === 'stageapi.morsan.co.in')) {
+if (isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST'] === 'https://apis.morsan.co.in' || $_SERVER['HTTP_HOST'] === 'apis.morsan.co.in')) {
     // Staging database settings
     $db_host = "localhost";
-    $db_user = "u696140658_morsan_stage";
-    $db_pass = "Morsan@2025";
-    $db_name = "u696140658_morsan_stage";
+    $db_user = "u696140658_morsan";
+    $db_pass = "morsan@DB12";
+    $db_name = "u696140658_morsan";
 } 
 // else {
 //     // Server (production) database settings
 //     $db_host = "localhost";
-//     $db_user = "u696140658_morsan";
-//     $db_pass = "morsan@DB12";
-//     $db_name = "u696140658_morsan";
+//     $db_user = "u696140658_morsan_stage";
+//     $db_pass = "Morsan@2025";
+//     $db_name = "u696140658_morsan_stage";
 // }
 
 $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
