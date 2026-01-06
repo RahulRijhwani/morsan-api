@@ -10,6 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 include 'db.php';
+require_once __DIR__ . '/mail/contactMail.php';
 
 $id = $_POST['id'] ?? null;
 
@@ -70,6 +71,20 @@ if ($id) {
 
 // Execute and return result
 if ($stmt->execute()) {
+
+    $mailSent = null;
+
+    if (! $id) {
+        $mailSent = sendContactMail([
+            'name'        => $name,
+            'email'       => $email,
+            'phone'       => $phone,
+            // 'type'        => $type,
+            'message'     => $form_message,
+            // 'inquiry_for' => $inquiry_for,
+            // 'country'     => $country
+        ]);
+    }
     echo json_encode([
         "success" => true,
         "message" => $message,
@@ -83,7 +98,8 @@ if ($stmt->execute()) {
             "inquiry_for" => $inquiry_for,
             "country" => $country,
             "is_read" => $is_read
-        ]
+        ],
+        "mailSent" => $mailSent
     ]);
 } else {
     echo json_encode(["success" => false, "message" => $conn->error]);
