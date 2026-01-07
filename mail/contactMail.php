@@ -57,7 +57,7 @@ function sendContactMail($data)
         $mail->Port       = 587;
 
         $mail->setFrom('candiddevsinfo@gmail.com', 'Contact Form');
-        $mail->addAddress('aneripatel2502@gmail.com');
+        $mail->addAddress('morsan@metaltecproducts.com');
 
         $mail->isHTML(true);
         $mail->Subject = 'New Contact Form Submission';
