@@ -10,6 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 include 'db.php';
+require_once __DIR__ . '/mail/vendorMail.php';
 
 $id = $_POST['id'] ?? null;
 
@@ -75,6 +76,21 @@ if ($id) {
 
 // Execute and return result
 if ($stmt->execute()) {
+    $mailSent = null;
+
+    if (! $id) {
+        $mailSent = sendContactMail([
+            'category'    => $category,
+            'firm_name'   => $firm_name,
+            'address'     => $location,
+            'gst_no'      => $gst_no,
+            'pan_no'      => $pan_no,
+            'first_name'  => $first_name,
+            'last_name'   => $last_name,
+            'email'       => $email,
+            'phone'       => $phone,
+        ]);
+    }
     echo json_encode([
         "success" => true,
         "message" => $message,
@@ -91,7 +107,8 @@ if ($stmt->execute()) {
             "email"   => $email,
             "type"    => $type,
             "is_read" => $is_read
-        ]
+        ],
+        "mailSent" => $mailSent
     ]);
 } else {
     echo json_encode(["success" => false, "message" => $conn->error]);

@@ -10,6 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 include 'db.php';
+require_once __DIR__ . '/mail/dealerMail.php';
 
 $id = $_POST['id'] ?? null;
 
@@ -79,6 +80,23 @@ if ($id) {
 
 // Execute and return result
 if ($stmt->execute()) {
+    $mailSent = null;
+
+    if (! $id) {
+        $mailSent = sendContactMail([
+            'firm_name'    => $firm_name,
+            'address'    => $location,
+            'city'    => $city,
+            'district'    => $dist,
+            'state'    => $state,
+            'pin_code'    => $pin_code,
+            'country'    => $country,
+            'first_name'        => $first_name,
+            'last_name'        => $last_name,
+            'email'       => $email,
+            'phone'       => $phone,
+        ]);
+    }
     echo json_encode([
         "success" => true,
         "message" => $message,
@@ -97,9 +115,9 @@ if ($stmt->execute()) {
             "location" => $location,
             "type"    => $type,
             "is_read" => $is_read
-        ]
+        ],
+        "mailSent" => $mailSent
     ]);
 } else {
     echo json_encode(["success" => false, "message" => $conn->error]);
 }
-?>

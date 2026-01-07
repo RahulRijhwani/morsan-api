@@ -81,8 +81,8 @@ if ($stmt->execute()) {
             'phone'       => $phone,
             // 'type'        => $type,
             'message'     => $form_message,
-            // 'inquiry_for' => $inquiry_for,
-            // 'country'     => $country
+            'inquiry_for' => $inquiry_for,
+            'country'     => $country
         ]);
     }
     echo json_encode([

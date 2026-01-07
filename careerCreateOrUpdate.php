@@ -10,6 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once 'db.php';
+require_once __DIR__ . '/mail/careerMail.php';
 require_once "functions.php";
 
 $uploadDir = "uploads/";
@@ -107,6 +108,18 @@ if ($id) {
 }
 
 if ($stmt->execute()) {
+    $mailSent = null;
+
+    if (! $id) {
+        $mailSent = sendContactMail([
+            'name'        => $name,
+            'role'        => $role,
+            'email'       => $email,
+            'phone'       => $phone,
+            'message'     => $form_message,
+            'document'    => $finalFile
+        ]);
+    }
     echo json_encode([
         "success" => true,
         "message" => $message,
@@ -119,7 +132,8 @@ if ($stmt->execute()) {
             "message" => $form_message,
             "file" => $finalFile,
             "type" => $type,
-        ]
+        ],
+        "mailSent" => $mailSent
     ]);
 } else {
     echo json_encode(["success" => false, "message" => $conn->error]);
