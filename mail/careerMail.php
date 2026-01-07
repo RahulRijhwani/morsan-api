@@ -21,7 +21,7 @@ function sendContactMail($data)
         $mail->Port       = 587;
 
         $mail->setFrom('candiddevsinfo@gmail.com', 'Contact Form');
-        $mail->addAddress('aneripatel2502@gmail.com');
+        $mail->addAddress('hr@metaltecproducts.com');
 
         if (!empty($data['document']) && file_exists($data['document'])) {
             $mail->addAttachment(
@@ -40,7 +40,6 @@ function sendContactMail($data)
             <p><b>Email:</b> {$data['email']}</p>
             <p><b>Phone:</b> {$data['phone']}</p>
             <p><b>Message:</b><br>{$data['message']}</p>
-            <p><b>Document:</b> <span style='color:#1a73e8; text-decoration:underline; cursor:default;'> Download PDF</span></p>
         ";
 
         $mail->send();
